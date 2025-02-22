@@ -8,7 +8,7 @@ def create_client(project_id, location, model_name="gemini-1.5-pro-002"):
     model = GenerativeModel(model_name)
     return model 
 
-def summarize_cim(model, file_uri, outline_uri, mime_type: str = "application/pdf"):
+def summarize_cim(model, file_locations: list[str], mime_type: str = "application/pdf"):
 
     prompt = """
     Fill in the following template with the information in the provided document. Be detailed.
@@ -17,16 +17,14 @@ def summarize_cim(model, file_uri, outline_uri, mime_type: str = "application/pd
     Return an organized output as multiple tables. 
     """
 
-    pdf_file = Part.from_uri(
-        uri=file_uri,
-        mime_type=mime_type
-    )
+    contents = [prompt] 
 
-    pdf_outline = Part.from_uri(
-        uri = f"{outline_uri}",
-        mime_type = "application/pdf"
-    )
-    contents = [pdf_file, pdf_outline, prompt]
+    for file in file_locations:
+        pdf_file = Part.from_uri(
+            uri=file,
+            mime_type=mime_type
+        )
+        contents.append(pdf_file)
 
     response = model.generate_content(contents)
     return response.text
