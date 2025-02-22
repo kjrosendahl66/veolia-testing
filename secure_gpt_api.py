@@ -1,6 +1,7 @@
 import requests 
 import json 
 
+# Function to chat with the Veolia Secure GPT API
 def chat_with_api(prompt: str, access_token: str, client_email: str,
                   temperature: float = 0.1, top_p: int = 1,
                   model: str = "gemini-pro-vision-1.5"):
