@@ -3,9 +3,12 @@ import pymupdf
 from gemini_client import create_client, summarize_cim 
 from get_access_token import get_access_token
 from secure_gpt_api import chat_with_api
-from io import StringIO
 from google.cloud import storage
 import vertexai 
+import os 
+from datetime import datetime 
+from dotenv import load_dotenv
+
 
 # Upload file to GCS
 def upload_blob(bucket_name, destination_blob_name, file):
@@ -15,14 +18,16 @@ def upload_blob(bucket_name, destination_blob_name, file):
     blob.upload_from_file(file)
 
     st.write("File:  ", destination_blob_name, "  uploaded to GCS.")
+    return f"gs://{bucket_name}/{destination_blob_name}"
 
-project_id = "ai-ml-team-sandbox"
-location = "us-central1"
-bucket_name = "kjr-veolia-test"
-folder = "cim_documents/pdf"
+load_dotenv()
 
-# Define locataion of the CIM Outline 
-outline_name = "CIMOutline.pdf"
+project_id = os.getenv("PROJECT_ID")
+location = os.getenv("LOCATION")
+bucket_name = os.getenv("BUCKET_NAME")
+
+# # Define locataion of the CIM Outline 
+# outline_name = "CIMOutline.pdf"
 
 # API URL
 token_url = "https://api.veolia.com/security/v2/oauth/token"
@@ -36,14 +41,23 @@ vertexai.init(project=project_id, location="us-central1")
 gemini_client = create_client(project_id, location)
 
 st.title("Text Extraction and Memo Generation")
-uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
+uploaded_files = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
 
-if uploaded_file is not None:
-    st.write("File uploaded successfully!")
-    # Upload the pdf file to GCS 
-    upload_blob(bucket_name, f"{folder}/{uploaded_file.name}", uploaded_file)
+if len(uploaded_files) > 1: 
+    st.write("Files uploaded successfully!")
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    file_locations = []
+
+    # Upload the files to GCS 
+    for file in uploaded_files:
+        file_location = upload_blob(bucket_name, f"files/{timestamp}/{file.name}", file)
+        file_locations.append(file_location)
 
     # Get the outline from Gemini
-    summary_from_gemini = summarize_cim(gemini_client, f"gs://{bucket_name}/{folder}/{uploaded_file.name}",
-                                        f"gs://{bucket_name}/{outline_name}")
+    summary_from_gemini = summarize_cim(gemini_client, file_locations) 
+
     st.write(summary_from_gemini)
+
+else: 
+    st.write("Please upload at least two files to proceed.")
