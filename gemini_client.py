@@ -13,14 +13,10 @@ def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temper
     Fill in the following template with the information in the provided document. Be detailed.
     The output should have detailed metrics and statistics extracted from the document when appropriate. 
     If the information cannot be concluded from the provided sample, leave the field blank. 
-    Return an organized output as multiple tables. Include page numbers where info was found as another column.
+    Include page numbers for references for each section.
     """
 
-    # Return an organized output JSON with markdown formatting. 
-    # For each field, provide the extracted information and the page numbers where it was found as an array./
-    # Use this schema: 
-    # {'section': {'field': {'value': str, 'pages': list[int]}, 'field': {'value': str, 'pages': list[int]}, ...},
-    # ...} 
+    # Return an organized output as multiple tables.
 
     contents = [prompt] 
 
@@ -30,6 +26,21 @@ def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temper
             mime_type=mime_type
         )
         contents.append(pdf_file)
+
+    generation_config = {"temperature": temperature}
+
+    response = model.generate_content(contents=contents, generation_config=generation_config)
+    return response.text
+
+def format_summary_as_markdown(model, summary: str, temperature: float = .7):
+    prompt = """
+    Format the following summary into multiple markdown tables. 
+    The output should be in markdown format. The columns should be field, value/description, and page numbers. 
+    It should be neat, readable, and not verbose. 
+    Include page numbers where info was found as another column.
+    """
+
+    contents = [prompt, summary] 
 
     generation_config = {"temperature": temperature}
 
