@@ -1,0 +1,11 @@
+streamlit 
+google-cloud-storage
+pymupdf
+pypandoc
+pandoc
+vertexai
+dotenv
+oauthlib
+requests_oauthlib
+fastapi
+pypandoc
