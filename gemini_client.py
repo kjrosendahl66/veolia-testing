@@ -1,14 +1,37 @@
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
+from vertexai.preview import caching
+from google.genai.types import GenerateContentConfig
+from google.genai import types
+
+CHATBOT_SYSTEM_INSTRUCTIONS = """
+        You are a chatbot model responsible for editing a generated summary outline given documents. 
+        You will be given files which contain the original document and the desired outline. 
+        You will also be given a generated summary outline.
+        You will also have the conversation history.
+        Make edits and improvements to the generated summary outline based on the user input. 
+        Still include the outline fields, structure, and page numbers when appropriate.
+        """
 
 # Create a client for the Generative Model
-def create_client(project_id, location, model_name="gemini-1.5-pro"): 
-    vertexai.init(project=project_id, location=location)
-    model = GenerativeModel(model_name)
+def create_client(model_name="gemini-1.5-pro", chatbot = False):
+    if chatbot:
+        return GenerativeModel(model_name, system_instruction=CHATBOT_SYSTEM_INSTRUCTIONS) 
+    return GenerativeModel(model_name)
 
-    return model 
+def load_part_from_gcs(files: dict, mime_type: str = "application/pdf"):
 
-# Generate a CIM summary using the Generative Model 
+    lst_pdf_files = []
+
+    for _, file_locations in files.items():
+        pdf_file = Part.from_uri(
+            uri=file_locations["gcs_file_location"],
+            mime_type=mime_type
+        )
+        lst_pdf_files.append(pdf_file)
+
+    return lst_pdf_files
+
 def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temperature: float = .7):
 
     """
@@ -34,14 +57,8 @@ def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temper
     contents = [prompt] 
 
     # Add the PDF files to the contents
-    for _, file_locations in files.items():
-        pdf_file = Part.from_uri(
-            uri=file_locations["gcs_file_location"],
-            mime_type=mime_type
-        )
-        contents.append(pdf_file)
+    contents += load_part_from_gcs(files, mime_type=mime_type)
 
-    # Set the generation config
     generation_config = {"temperature": temperature}
 
     # Generate the response
@@ -70,6 +87,41 @@ def format_summary_as_markdown(model, summary: str, temperature: float = .7):
     contents = [prompt, summary] 
 
     # Set the generation config
+    generation_config = {"temperature": temperature}
+
+    # Generate the response
+    response = model.generate_content(contents=contents, generation_config=generation_config)
+    return response.text
+
+def format_chat_history(msg_history: list) -> list[str]:
+    """
+    Formats the chat history (list of dictionaries) into a list of strings for the LLM.
+    Args:
+        msg_history (list): A list of dictionaries, where each dictionary has 'role' and 'content'.
+    Returns:
+        list[str]: A list of strings representing the conversation turns.
+    """
+    formatted_history = []
+    for msg in msg_history:
+        formatted_history.append(f"{msg['role']}: {msg['content']}")
+    return formatted_history
+
+def chat_with_model(model: GenerativeModel, 
+                    files: dict, 
+                    summary: str, 
+                    user_prompt: str, 
+                    msg_history: list, 
+                    mime_type: str = "application/pdf", 
+                    temperature: float = .7):
+    
+    # Add the PDF files to the contents
+    contents = load_part_from_gcs(files, mime_type=mime_type)
+    contents += [summary, user_prompt]
+
+    # Format the chat history
+    formatted_history = format_chat_history(msg_history)
+    contents += formatted_history
+    
     generation_config = {"temperature": temperature}
 
     # Generate the response
