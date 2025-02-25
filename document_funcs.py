@@ -3,16 +3,22 @@ import streamlit as st
 import os 
 import pypandoc
 
-# Load a document page
 def display_page(doc):
+    """
+    This function displays a page of a document.
+    """
+
     # Load the page
     page = doc.load_page(st.session_state.get("current_page",1) - 1)
     # Display the page
     st.image(page.get_svg_image())
     st.caption(f"Page {st.session_state.get('current_page',1)} of {doc.page_count}")
 
-# Add navigation buttons to the file viewer
 def navigation_buttons(doc):
+    """
+    This function displays the navigation buttons for the document viewer.
+    """
+
     col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
 
     # Button for previous page
@@ -50,6 +56,9 @@ def navigation_buttons(doc):
             st.rerun()
 
 def render_files():
+    """
+    This function renders the uploaded files in the file viewer.
+    """
 
     # Display the file viewer with uploaded files 
     if st.session_state.files: 
@@ -76,16 +85,20 @@ def render_files():
 
 def save_summary_as_docx(summary: str, summary_filename = "summary.md", output_filename = "summary.docx"):
 
-        # Construct path
-        summary_path = os.path.join(st.session_state.temp_dir, summary_filename)
-        output_path = os.path.join(st.session_state.temp_dir, output_filename)
+    """
+    This function saves a summary as a docx file for user download.
+    """
+    
+    # Construct path
+    summary_path = os.path.join(st.session_state.temp_dir, summary_filename)
+    output_path = os.path.join(st.session_state.temp_dir, output_filename)
 
-        # Save the summary to a local path
-        with open(summary_path, "w") as f:
-           f.write(summary)
+    # Save the summary to a local path
+    with open(summary_path, "w") as f:
+        f.write(summary)
 
-        # Convert the summary to a docx file
-        pypandoc.convert_file(summary_path, 'docx', outputfile=output_path)
+    # Convert the summary to a docx file
+    pypandoc.convert_file(summary_path, 'docx', outputfile=output_path)
 
-        return output_path, output_filename
+    return output_path, output_filename
             

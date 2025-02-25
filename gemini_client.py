@@ -1,8 +1,5 @@
-import vertexai
 from vertexai.generative_models import GenerativeModel, Part
-from vertexai.preview import caching
-from google.genai.types import GenerateContentConfig
-from google.genai import types
+from typing import Dict, List
 
 CHATBOT_SYSTEM_INSTRUCTIONS = """
         You are a chatbot model responsible for editing a generated summary outline given documents. 
@@ -19,7 +16,11 @@ def create_client(model_name="gemini-1.5-pro", chatbot = False):
         return GenerativeModel(model_name, system_instruction=CHATBOT_SYSTEM_INSTRUCTIONS) 
     return GenerativeModel(model_name)
 
-def load_part_from_gcs(files: dict, mime_type: str = "application/pdf"):
+def load_part_from_gcs(files: Dict[str, Dict[str, str]], mime_type: str = "application/pdf"):
+
+    """
+    This function loads the PDF files from GCS and returns a list of Part objects for the LLM.
+    """
 
     lst_pdf_files = []
 
@@ -32,7 +33,7 @@ def load_part_from_gcs(files: dict, mime_type: str = "application/pdf"):
 
     return lst_pdf_files
 
-def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temperature: float = .7):
+def summarize_cim(model, files: Dict[str, Dict[str, str]], mime_type: str = "application/pdf", temperature: float = .7):
 
     """
     This function uses Gemini to generate a summary of a CIM using an outline template. 
@@ -52,7 +53,6 @@ def summarize_cim(model, files: dict, mime_type: str = "application/pdf", temper
     If the information cannot be concluded from the provided sample, leave the field blank. 
     Include page numbers for references for each section.
     """
-    # Return an organized output as multiple tables.
 
     contents = [prompt] 
 
@@ -93,11 +93,11 @@ def format_summary_as_markdown(model, summary: str, temperature: float = .7):
     response = model.generate_content(contents=contents, generation_config=generation_config)
     return response.text
 
-def format_chat_history(msg_history: list) -> list[str]:
+def format_chat_history(msg_history: List[Dict[str, str]]) -> list[str]:
     """
     Formats the chat history (list of dictionaries) into a list of strings for the LLM.
     Args:
-        msg_history (list): A list of dictionaries, where each dictionary has 'role' and 'content'.
+        msg_history (list): A list of dictionaries, where each dictionary has 'role', 'content', and optionally 'display_response' keys.
     Returns:
         list[str]: A list of strings representing the conversation turns.
     """
@@ -107,12 +107,27 @@ def format_chat_history(msg_history: list) -> list[str]:
     return formatted_history
 
 def chat_with_model(model: GenerativeModel, 
-                    files: dict, 
+                    files: Dict[str, Dict[str, str]],
                     summary: str, 
                     user_prompt: str, 
-                    msg_history: list, 
+                    msg_history: List[Dict[str, str]],
                     mime_type: str = "application/pdf", 
                     temperature: float = .7):
+    
+    """
+    This function generates an edited summary based on the chat history, previous summary, and user input.
+
+    Args:
+        model (GemerativeModel): A GenerativeModel object. 
+        files (dict): A dictionary containing the file locations of the CIM and the template. 
+        summary (str): The previous summary. 
+        user_prompt (str): The user input.
+        msg_history (list): A list of dictionaries representing the chat history.
+        mime_type (str, optional): The mime type of the files. Defaults to "application/pdf".
+        temperature (float, optional): The temperature for the model generation. Defaults to .7.
+    Returns: 
+        A string containing the edited summary.
+    """
     
     # Add the PDF files to the contents
     contents = load_part_from_gcs(files, mime_type=mime_type)

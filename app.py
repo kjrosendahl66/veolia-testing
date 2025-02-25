@@ -6,7 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import tempfile
 import pymupdf
-from gemini_client import create_client, summarize_cim, format_summary_as_markdown, chat_with_model 
+from gemini_client import create_client, summarize_cim, format_summary_as_markdown 
 from get_access_token import get_access_token
 from document_funcs import render_files, save_summary_as_docx
 from chatbot import chatbot_tab
@@ -22,7 +22,6 @@ def upload_blob(bucket_name, destination_blob_name, file):
 
 # Render markdown for streamlit  
 def render_markdown(text):
-    # text = text.replace("$", "\$").replace("<br>", "")
     text = text.replace("\\", "\\\\").replace("$", "\$").replace("<br>", " ")
     return text
 
@@ -44,6 +43,7 @@ token_url = "https://api.veolia.com/security/v2/oauth/token"
 api_url = 'https://api.veolia.com/llm/veoliasecuregpt/v1/answer'
 access_token = get_access_token(token_url, api_url)
 
+# Initialize session state
 if "files" not in st.session_state: 
     st.session_state.files = {}
 if "temp_dir" not in st.session_state:
@@ -55,6 +55,7 @@ if "model_option" not in st.session_state:
 
 tab1, tab2 = st.tabs(["Home", "Chatbot"])
 
+# Display the home tab
 with tab1: 
     st.title("V-Accelerate: Memo Generation Tool") 
     st.write(" \n  ")
