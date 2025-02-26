@@ -82,6 +82,7 @@ def render_files():
                 st.session_state.current_page = 1
 
             # Load the document and display the page
+            st.subheader("File Viewer")
             doc = st.session_state.docs[file_option]
             navigation_buttons(doc)
             display_page(doc)

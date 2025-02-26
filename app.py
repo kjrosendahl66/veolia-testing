@@ -53,24 +53,30 @@ if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = tempfile.mkdtemp()
 if "docs" not in st.session_state:
     st.session_state.docs = {}
-if "model_option" not in st.session_state:
-    st.session_state.model_option = "gemini-1.5-pro"
+# if "model_option" not in st.session_state:
+#     st.session_state.model_option = "gemini-2.0-flash"
+st.session_state.markdown_gemini_client = create_client(
+    model_name="gemini-1.5-flash", chatbot=False
+)
 
 tab1, tab2 = st.tabs(["Home", "Chatbot"])
 
 # Display the home tab
 with tab1:
-    st.title("V-Accelerate: Memo Generation Tool")
-    st.write(" \n  ")
-    st.write(" \n  ")
+    st.title("V-Accelerate")
+    # st.write(" \n  ")
+    st.subheader("Create initial summaries and ask questions of your Confidential Information Memorandum (CIM)!", divider="gray")
+
 
     # Model selection and file input
     model_option = st.selectbox(
-        label="Select the model to use",
-        options=("gemini-1.5-pro", "gemini-2.0-flash", "Secure GPT"),
+        label="Choose a model to generate a summary:",
+        options=("gemini-2.0-flash","gemini-1.5-pro", "Secure GPT"),
+        index=None, 
+        placeholder="Select a model...",
     )
     uploaded_files = st.file_uploader(
-        "Upload PDF files", type=["pdf"], accept_multiple_files=True
+        "Upload your CIM and outline template:", type=["pdf"], accept_multiple_files=True
     )
 
     if model_option:
@@ -109,7 +115,7 @@ with tab1:
             st.toast("Files processed succesfully!", icon="🎉")
 
         # Generate summary
-        if len(st.session_state.files) > 1 and "summary" not in st.session_state:
+        if len(st.session_state.files) > 1 and "summary" not in st.session_state and model_option:
             with st.spinner("Generating summary..."):
                 # Generate summary using Gemini
                 if model_option.startswith("gemini"):
@@ -124,7 +130,7 @@ with tab1:
                     )
                     # Generate a summary for markdown display in streamlit
                     display_summary = format_summary_as_markdown(
-                        gemini_client, summary_from_gemini
+                        st.session_state.markdown_gemini_client, summary_from_gemini
                     )
 
                     # Save both summaries to the session state
@@ -135,7 +141,7 @@ with tab1:
                     st.session_state.summary = "Secure GPT not implemented yet. "
 
         #  Display markdown summary
-        if st.session_state.display_summary:
+        if "display_summary" in st.session_state:
             # Render the markdown summary and display in streamlit
             st.markdown(
                 render_markdown(st.session_state.display_summary),

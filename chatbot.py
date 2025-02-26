@@ -7,8 +7,8 @@ def chatbot_tab():
     # Initialize session state variables
     st.session_state.intro_message = {
         "role": "assistant",
-        "content": "I am your outline editor assistant!",
-        "display_response": "I am your outline editor assistant!",
+        "content": "I am your editor assistant! Request edits, ask questions, or get help with the summary! 📝",
+        "display_response": "I am your editor assistant! Request edits, ask questions, or get help with the summary! 📝"
     }
     if "latest_chatbot_response" not in st.session_state:
         st.session_state.latest_chatbot_response = None
@@ -17,9 +17,8 @@ def chatbot_tab():
 
     # Check if a summary has been generated before starting the chat
     if "summary" in st.session_state:
-        # Create model clients
+        # Create model client
         chat_client = create_client(st.session_state.model_option, chatbot=True)
-        markdown_client = create_client(st.session_state.model_option)
 
         # Initialize the chat with an intro message
         if "messages" not in st.session_state:
@@ -71,7 +70,7 @@ def chatbot_tab():
                     )
 
                     display_response = format_summary_as_markdown(
-                        markdown_client, summary=response
+                        st.session_state.markdown_gemini_client, summary=response
                     )
 
                 # Save latest responses to the session state

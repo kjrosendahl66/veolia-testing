@@ -8,12 +8,13 @@ CHATBOT_SYSTEM_INSTRUCTIONS = """
         You will also be given a generated summary outline.
         You will also have the conversation history.
         Make edits and improvements to the generated summary outline based on the user input. 
-        Still include the outline fields, structure, and page numbers when appropriate.
+        Still adhere to the outline template, outline fields, and page numbers. 
+        If the information cannot be concluded, label the field as "Not Available".
         """
 
 
 # Create a client for the Generative Model
-def create_client(model_name: str = "gemini-1.5-pro", chatbot: bool = False):
+def create_client(model_name: str = "gemini-2.0-flash", chatbot: bool = False):
     if chatbot:
         return GenerativeModel(
             model_name, system_instruction=CHATBOT_SYSTEM_INSTRUCTIONS
@@ -60,7 +61,7 @@ def summarize_cim(
     prompt = """
     Fill in the following template with the information in the provided document. Be detailed.
     The output should have detailed metrics and statistics extracted from the document when appropriate. 
-    If the information cannot be concluded from the provided sample, leave the field blank. 
+    If the information cannot be concluded from the provided sample, label the field as "Not Available".
     Include page numbers for references for each section.
     """
 
@@ -91,7 +92,8 @@ def format_summary_as_markdown(model, summary: str, temperature: float = 0.7):
 
     prompt = """
     Format the following summary into multiple markdown tables. 
-    The output should be in markdown format. The columns should be field, value/description, and page numbers. 
+    The output should be in markdown format. 
+    Nest information in a table or create multiple columns if appropriate.
     It should be neat, readable, and not verbose. 
     Include page numbers where info was found as another column.
     """
