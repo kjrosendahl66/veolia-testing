@@ -66,6 +66,7 @@ def render_files():
 
     # Display the file viewer with uploaded files
     if st.session_state.files:
+
         file_names = list(st.session_state.files.keys())
         file_option = st.selectbox("Select a file to view", options=file_names, index=0)
 
@@ -82,21 +83,12 @@ def render_files():
                 st.session_state.current_page = 1
 
             # Load the document and display the page
-            st.subheader("File Viewer")
             doc = st.session_state.docs[file_option]
             navigation_buttons(doc)
             display_page(doc)
 
 
-def save_summary_as_docx(
-    summary: str,
-    summary_filename: str = "summary.md",
-    output_filename: str = "summary.docx",
-):
-    """
-    This function saves a summary as a docx file for user download.
-    """
-
+def save_summary_as_docx(summary: str, summary_filename: str, output_filename: str): 
     # Construct path
     summary_path = os.path.join(st.session_state.temp_dir, summary_filename)
     output_path = os.path.join(st.session_state.temp_dir, output_filename)
@@ -105,7 +97,14 @@ def save_summary_as_docx(
     with open(summary_path, "w") as f:
         f.write(summary)
 
-    # Convert the summary to a docx file
-    pypandoc.convert_file(summary_path, "docx", outputfile=output_path)
+    if output_filename.endswith(".docx"):
+        # Convert the summary to a docx file
+        pypandoc.convert_file(summary_path, "docx", outputfile=output_path)
 
     return output_path, output_filename
+
+def convert_docx_to_pdf(docx_path: str, output_pdf_filename:str):
+    output_path = os.path.join(st.session_state.temp_dir, output_pdf_filename)
+    pypandoc.convert_file(docx_path, "pdf", outputfile=output_path, extra_args=['-V geometry:margin=1.5cm', '--pdf-engine=pdflatex'])
+
+    return output_path, output_pdf_filename
