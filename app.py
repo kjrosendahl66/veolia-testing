@@ -8,7 +8,7 @@ import tempfile
 import pymupdf
 from gemini_client import create_client, summarize_cim, format_summary_as_markdown
 from get_access_token import get_access_token
-from document_funcs import render_files, save_summary_as_docx
+from document_funcs import render_files, save_summary_as_docx, convert_docx_to_pdf
 from chatbot import chatbot_tab
 
 
@@ -17,6 +17,7 @@ def upload_blob(bucket_name, destination_blob_name, file):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
+        
     blob.upload_from_file(file)
 
     return f"gs://{bucket_name}/{destination_blob_name}"
@@ -76,7 +77,7 @@ with tab1:
         placeholder="Select a model...",
     )
     uploaded_files = st.file_uploader(
-        "Upload your CIM and outline template:", type=["pdf"], accept_multiple_files=True
+        "Upload your CIM and outline template:", type=["pdf", "txt"], accept_multiple_files=True
     )
 
     if model_option:
@@ -105,6 +106,7 @@ with tab1:
                             file.name: {
                                 "local_file_location": path,
                                 "gcs_file_location": gcs_location,
+                                "mime_type": file.type,
                             }
                         }
                     )
@@ -149,15 +151,32 @@ with tab1:
             )
 
             # Save the summary as a docx file
-            output_path, output_filename = save_summary_as_docx(
-                st.session_state.summary
+            docx_output_path, docx_output_filename = save_summary_as_docx(
+                st.session_state.summary, "summary.md", "summary.docx"
+            )
+
+            # Save the summary as a pdf file
+            pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
+                docx_output_path, "summary.pdf"
             )
 
             # Display a download button for the docx file
-            download = st.download_button(
+            docx_download = st.download_button(
                 label="Download summary as a docx!",
-                data=open(output_path, "rb").read(),
-                file_name=output_filename,
+                data=open(docx_output_path, "rb").read(),
+                file_name=docx_output_filename,
+            )
+
+            pdf_download = st.download_button(
+                label="Download summary as a pdf!",
+                data=open(pdf_output_path, "rb").read(),
+                file_name=pdf_output_filename,
+            )
+
+            txt_download = st.download_button(
+                label="Download summary as a txt!",
+                data=st.session_state.summary,
+                file_name="summary.txt",
             )
 
     else:
