@@ -1,12 +1,21 @@
-FROM python:3.10.13-slim-bookworm
+FROM python:3.10-slim
 
+# Set environment variables
 WORKDIR /app
-COPY . /app
 
+# Install system dependencies, including pandoc
+RUN apt-get update && \
+    apt-get install -y pandoc pdflatex && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+ 
 # Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port that Streamlit runs on (default is 8501)
+# Copy the application code
+COPY . . 
+
+# Expose the port 
 EXPOSE 8080
 
 # Specify the command to run on container startup
