@@ -1,6 +1,5 @@
 streamlit 
 google-cloud-storage
-mupdf
 pymupdf
 pypandoc
 pandoc
@@ -9,4 +8,3 @@ dotenv
 oauthlib
 requests_oauthlib
 fastapi
-pypandoc
