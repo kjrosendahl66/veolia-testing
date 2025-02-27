@@ -1,6 +1,6 @@
 import streamlit as st
 from gemini_client import create_client, chat_with_model, format_summary_as_markdown
-from document_funcs import save_summary_as_docx
+from document_funcs import display_download_buttons 
 
 
 def chatbot_tab():
@@ -101,21 +101,12 @@ def chatbot_tab():
             st.session_state.latest_chatbot_display_response = None
             st.rerun()
 
-        # Offer download of the latest chatbot response as a docx file
+        st.divider()
+    
+        # Offer download of the latest chatbot response
         if st.session_state.latest_chatbot_response is not None:
-            # Save the summary as a docx file
-            output_path, output_filename = save_summary_as_docx(
-                st.session_state.latest_chatbot_response,
-                "chatbot_summary.md",
-                "chatbot_summary.docx",
-            )
 
-            # Display a download button for the docx file
-            _ = st.download_button(
-                label="Download the latest edit as a docx!",
-                data=open(output_path, "rb").read(),
-                file_name=output_filename,
-            )
+            display_download_buttons(summary_name="chatbot_summary")
 
     else:
         st.write("Please generate a summary in the Home tab to start chatting.")

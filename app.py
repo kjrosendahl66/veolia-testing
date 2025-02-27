@@ -8,7 +8,7 @@ import tempfile
 import pymupdf
 from gemini_client import create_client, summarize_cim, format_summary_as_markdown
 from get_access_token import get_access_token
-from document_funcs import render_files, save_summary_as_docx, convert_docx_to_pdf
+from document_funcs import render_files, display_download_buttons
 from chatbot import chatbot_tab
 
 
@@ -150,34 +150,10 @@ with tab1:
                 unsafe_allow_html=True,
             )
 
-            # Save the summary as a docx file
-            docx_output_path, docx_output_filename = save_summary_as_docx(
-                st.session_state.summary, "summary.md", "summary.docx"
-            )
-
-            # Save the summary as a pdf file
-            pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
-                docx_output_path, "summary.pdf"
-            )
-
-            # Display a download button for the docx file
-            docx_download = st.download_button(
-                label="Download summary as a docx!",
-                data=open(docx_output_path, "rb").read(),
-                file_name=docx_output_filename,
-            )
-
-            pdf_download = st.download_button(
-                label="Download summary as a pdf!",
-                data=open(pdf_output_path, "rb").read(),
-                file_name=pdf_output_filename,
-            )
-
-            txt_download = st.download_button(
-                label="Download summary as a txt!",
-                data=st.session_state.summary,
-                file_name="summary.txt",
-            )
+            st.divider()
+        
+            # Display download buttons for the summary
+            display_download_buttons(summary_name="summary")
 
     else:
         st.write("Please upload at least two files to get started.")
