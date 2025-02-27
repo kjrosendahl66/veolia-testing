@@ -23,7 +23,7 @@ def create_client(model_name: str = "gemini-2.0-flash", chatbot: bool = False):
 
 
 def load_part_from_gcs(
-    files: Dict[str, Dict[str, str]], mime_type: str = "application/pdf"
+    files: Dict[str, Dict[str, str]]
 ):
     """
     This function loads the PDF files from GCS and returns a list of Part objects for the LLM.
@@ -33,7 +33,7 @@ def load_part_from_gcs(
 
     for _, file_locations in files.items():
         pdf_file = Part.from_uri(
-            uri=file_locations["gcs_file_location"], mime_type=mime_type
+            uri=file_locations["gcs_file_location"], mime_type=file_locations["mime_type"]
         )
         lst_pdf_files.append(pdf_file)
 
@@ -43,7 +43,6 @@ def load_part_from_gcs(
 def summarize_cim(
     model,
     files: Dict[str, Dict[str, str]],
-    mime_type: str = "application/pdf",
     temperature: float = 0.7,
 ):
     """
@@ -52,7 +51,6 @@ def summarize_cim(
     Args:
         model (GemerativeModel): A GenerativeModel object.
         files (dict): A dictionary containing the file locations of the CIM and the template
-        mime_type (str, optional): The mime type of the files
         temperature (float, optional): The temperature for the model generation.
     Returns:
         A string containing the generated summary.
@@ -68,7 +66,7 @@ def summarize_cim(
     contents = [prompt]
 
     # Add the PDF files to the contents
-    contents += load_part_from_gcs(files, mime_type=mime_type)
+    contents += load_part_from_gcs(files)
 
     generation_config = {"temperature": temperature}
 
@@ -130,7 +128,6 @@ def chat_with_model(
     summary: str,
     user_prompt: str,
     msg_history: List[Dict[str, str]],
-    mime_type: str = "application/pdf",
     temperature: float = 0.7,
 ):
     """
@@ -142,14 +139,13 @@ def chat_with_model(
         summary (str): The previous summary.
         user_prompt (str): The user input.
         msg_history (list): A list of dictionaries representing the chat history.
-        mime_type (str, optional): The mime type of the files. Defaults to "application/pdf".
         temperature (float, optional): The temperature for the model generation. Defaults to .7.
     Returns:
         A string containing the edited summary.
     """
 
     # Add the PDF files to the contents
-    contents = load_part_from_gcs(files, mime_type=mime_type)
+    contents = load_part_from_gcs(files)
     contents += [summary, user_prompt]
 
     # Format the chat history
