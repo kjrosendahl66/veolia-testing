@@ -122,34 +122,44 @@ def display_download_buttons(summary_name: str ="summary"):
             summary_content = st.session_state.latest_chatbot_response
             button_display_text = "Download the latest edit"
 
-        # Save the summary as a docx file
-        docx_output_path, docx_output_filename = save_summary_as_docx(
-            summary_content, f"{summary_name}.md", f"{summary_name}.docx"
-        )
+        try: 
+            # Save the summary as a docx file
+            docx_output_path, docx_output_filename = save_summary_as_docx(
+                summary_content, f"{summary_name}.md", f"{summary_name}.docx"
+            )
+        except: 
+            st.error("Error saving as a docx file.")
+            docx_output_path, docx_output_filename = None, None
 
-        # Save the summary as a pdf file
-        pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
-            docx_output_path, f"{summary_name}.pdf"
-        )
 
+        try: 
+            # Save the summary as a pdf file
+            pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
+                docx_output_path, f"{summary_name}.pdf"
+            )
+        except: 
+            st.error("Error saving as a pdf file.")
+            pdf_output_path, pdf_output_filename = None, None
 
         # Display download buttons
         col1, col2, col3 = st.columns(3)
 
         # Download button for docx
         with col1: 
-            _ = st.download_button(
-                label=f"{button_display_text} as a docx!",
-                data=open(docx_output_path, "rb").read(),
-                file_name=docx_output_filename,
-            )
+            if docx_output_path is not None and docx_output_filename is not None:              
+                _ = st.download_button(
+                    label=f"{button_display_text} as a docx!",
+                    data=open(docx_output_path, "rb").read(),
+                    file_name=docx_output_filename,
+                )
         # Download button for pdf
         with col2:
-            _ = st.download_button(
-                label=f"{button_display_text} as a pdf!",
-                data=open(pdf_output_path, "rb").read(),
-                file_name=pdf_output_filename,
-            )
+            if pdf_output_path is not None and pdf_output_filename is not None:
+                _ = st.download_button(
+                    label=f"{button_display_text} as a pdf!",
+                    data=open(pdf_output_path, "rb").read(),
+                    file_name=pdf_output_filename,
+                )
         # Download button for txt
         with col3: 
             _ = st.download_button(
