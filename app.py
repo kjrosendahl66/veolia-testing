@@ -6,7 +6,6 @@ from datetime import datetime
 from dotenv import load_dotenv
 import tempfile
 import pymupdf
-from streamlit_navigation_bar import st_navbar
 from gemini_client import create_client, summarize_cim, format_summary_as_markdown
 from get_access_token import get_access_token
 from document_funcs import render_files, display_download_buttons
@@ -145,11 +144,11 @@ with tab1:
         else:
             st.write("Please upload at least two files and choose a model.")
 
-        # Display the uploaded files in the sidebar
-        with st.sidebar:
-            container = st.container(border=True)
-            with container:
-                render_files()
+    # Display the uploaded files in the sidebar
+    with st.sidebar:
+        container = st.container(border=True)
+        with container:
+            render_files()
 
 with tab2:
     if "summary" in st.session_state and model_option:
