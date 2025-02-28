@@ -6,28 +6,12 @@ from datetime import datetime
 from dotenv import load_dotenv
 import tempfile
 import pymupdf
+from streamlit_navigation_bar import st_navbar
 from gemini_client import create_client, summarize_cim, format_summary_as_markdown
 from get_access_token import get_access_token
 from document_funcs import render_files, display_download_buttons
-from chatbot import chatbot_tab
-
-
-# Upload file to GCS
-def upload_blob(bucket_name, destination_blob_name, file):
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-        
-    blob.upload_from_file(file)
-
-    return f"gs://{bucket_name}/{destination_blob_name}"
-
-
-# Render markdown for streamlit
-def render_markdown(text):
-    text = text.replace("\\", "\\\\").replace("$", "\$").replace("<br>", " ")
-    return text
-
+from chatbots import editor_chabot, qa_chatbot
+from utils import upload_blob, render_markdown
 
 # Set configuration and title
 st.set_page_config(layout="wide")
@@ -54,16 +38,17 @@ if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = tempfile.mkdtemp()
 if "docs" not in st.session_state:
     st.session_state.docs = {}
-# if "model_option" not in st.session_state:
-#     st.session_state.model_option = "gemini-2.0-flash"
 st.session_state.markdown_gemini_client = create_client(
-    model_name="gemini-1.5-flash", chatbot=False
+    model_name="gemini-1.5-flash"
 )
 
 
 st.image("images/veolia.png", width=200) # Adjust width as needed
 
-tab1, tab2 = st.tabs(["Home", "Chatbot"])
+tab1, tab2, tab3 = st.tabs(["Home", "Editor Chatbot", "Q&A Chatbot"])
+
+# pages = ["Home", "Editor Chatbot", "Q&A Chatbot"]
+# page = st_navbar(pages, default_index=0)
 
 # Display the home tab
 with tab1:
@@ -157,16 +142,26 @@ with tab1:
             # Display download buttons for the summary
             display_download_buttons(summary_name="summary")
 
-    else:
-        st.write("Please upload at least two files to get started.")
+        else:
+            st.write("Please upload at least two files and choose a model.")
 
-    # Display the uploaded files in the sidebar
-    with st.sidebar:
-        container = st.container(border=True)
-        with container:
-            render_files()
+        # Display the uploaded files in the sidebar
+        with st.sidebar:
+            container = st.container(border=True)
+            with container:
+                render_files()
 
 with tab2:
-    chatbot_tab()
+    if "summary" in st.session_state and model_option:
+        editor_chabot()
+    else: 
+        st.write("Please generate a summary in the Home tab first.")
+
+with tab3:
+    if len(st.session_state.files) > 0 and model_option:
+        qa_chatbot()
+    else: 
+        st.write("Please upload files and choose a model in the Home tab first.")
+
 
 st.logo("images/poweredLogo_processed.png")

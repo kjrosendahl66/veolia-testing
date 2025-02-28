@@ -119,7 +119,7 @@ def display_download_buttons(summary_name: str ="summary"):
             button_display_text = "Download summary" 
 
         elif summary_name == "chatbot_summary":
-            summary_content = st.session_state.latest_chatbot_response
+            summary_content = st.session_state.latest_editor_chatbot_response
             button_display_text = "Download the latest edit"
 
         try: 
