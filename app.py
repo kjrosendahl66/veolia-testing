@@ -60,13 +60,15 @@ st.session_state.markdown_gemini_client = create_client(
     model_name="gemini-1.5-flash", chatbot=False
 )
 
+
+st.image("images/veolia.png", width=200) # Adjust width as needed
+
 tab1, tab2 = st.tabs(["Home", "Chatbot"])
 
 # Display the home tab
 with tab1:
     st.title("V-Accelerate")
-    # st.write(" \n  ")
-    st.subheader("Create initial summaries and ask questions of your Confidential Information Memorandum (CIM)!", divider="gray")
+    st.markdown("_Create initial summaries and ask questions of your Confidential Information Memorandum (CIM)!_")
 
 
     # Model selection and file input
@@ -166,3 +168,5 @@ with tab1:
 
 with tab2:
     chatbot_tab()
+
+st.logo("images/poweredLogo_processed.png")
