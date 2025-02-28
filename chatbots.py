@@ -107,7 +107,7 @@ def qa_chatbot():
 
     st.session_state.qa_intro_msg = {
         "role": "assistant",
-        "content": "I am your Q&A assistant! Ask me questions your documents! 🤖",
+        "content": "I am your Q&A assistant! Ask me questions about your documents! 🤖",
         }
     
     # Create model client 
