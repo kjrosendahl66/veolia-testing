@@ -111,7 +111,7 @@ def qa_chatbot():
         }
     
     # Create model client 
-    editor_chat_client = create_client(st.session_state.model_option, chatbot_function="qa")
+    qa_chat_client = create_client(st.session_state.model_option, chatbot_function="qa")
 
     if "qa_messages" not in st.session_state:
         st.session_state.qa_messages = [st.session_state.qa_intro_msg]
@@ -142,10 +142,10 @@ def qa_chatbot():
         with qa_chat_placeholder:
             with st.spinner("Generating response..."):
                 qa_response = chat_with_model(
-                    model=editor_chat_client,
+                    model=qa_chat_client,
                     files=st.session_state.files,
                     user_prompt=prompt,
-                    msg_history=st.session_state.editor_messages
+                    msg_history=st.session_state.qa_messages
                 ) 
 
             # Display the response in the chat and save to the chat history
