@@ -5,9 +5,12 @@ WORKDIR /app
 
 # Install system dependencies, including pandoc
 RUN apt-get update && \
-    apt-get install -y pandoc pdflatex && \
+    apt-get install -y make gcc g++ libjpeg-dev libpng-dev libtiff-dev zlib1g-dev libmupdf-dev pandoc texlive-latex-recommended texlive-fonts-extra && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+ 
+# Copy the requirements file into the container
+COPY requirements.txt requirements.txt
  
 # Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
