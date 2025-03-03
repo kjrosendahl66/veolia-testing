@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import tempfile
 import pymupdf
 from get_access_token import get_access_token
-from llm_manager import create_client, summarize_cim, format_summary_as_markdown
+from llm_manager import create_client, summarize_cim, format_summary_as_markdown, create_memo
 from document_manager import render_files, display_download_buttons
 from chatbots import editor_chabot, qa_chatbot
 from utils import upload_blob, render_markdown
@@ -45,9 +45,6 @@ st.image("images/veolia.png", width=200) # Adjust width as needed
 
 tab1, tab2, tab3 = st.tabs(["Home", "Editor Chatbot", "Q&A Chatbot"])
 
-# pages = ["Home", "Editor Chatbot", "Q&A Chatbot"]
-# page = st_navbar(pages, default_index=0)
-
 # Display the home tab
 with tab1:
     st.title("V-Accelerate")
@@ -61,6 +58,14 @@ with tab1:
         index=None, 
         placeholder="Select a model...",
     )
+
+    function_option = st.selectbox(
+        label="Choose what to do:",
+        options=("CIM Summary", "Memo Generation"),
+        index=None,
+        placeholder="Select a function...",
+    )
+
     uploaded_files = st.file_uploader(
         "Upload your CIM and outline template:", type=["pdf", "txt"], accept_multiple_files=True
     )
@@ -102,23 +107,32 @@ with tab1:
             st.toast("Files processed succesfully!", icon="🎉")
 
         # Generate summary
-        if len(st.session_state.files) > 1 and "summary" not in st.session_state and model_option:
+        if len(st.session_state.files) > 1 and "summary" not in st.session_state and model_option and function_option:
             with st.spinner("Generating summary..."):
                 # Generate summary using Gemini
                 if model_option.startswith("gemini"):
+
                     # Create a client
                     gemini_client = create_client(
                         model_name=st.session_state.model_option
                     )
 
-                    # Generate main summary
-                    summary_from_gemini = summarize_cim(
-                        gemini_client, st.session_state.files
-                    )
-                    # Generate a summary for markdown display in streamlit
-                    display_summary = format_summary_as_markdown(
-                        st.session_state.markdown_gemini_client, summary_from_gemini
-                    )
+                    if function_option == "CIM Summary":
+                        # Generate main summary
+                        summary_from_gemini = summarize_cim(
+                            gemini_client, st.session_state.files
+                        )
+
+                        # Generate a summary for markdown display in streamlit
+                        display_summary = format_summary_as_markdown(
+                            st.session_state.markdown_gemini_client, summary_from_gemini
+                        )
+                    elif function_option == "Memo Generation":
+                        # Generate memo
+                        summary_from_gemini = create_memo(
+                            gemini_client, st.session_state.files
+                        )
+                        display_summary = summary_from_gemini
 
                     # Save both summaries to the session state
                     st.session_state.summary = summary_from_gemini
