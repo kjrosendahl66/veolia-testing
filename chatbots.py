@@ -1,6 +1,6 @@
 import streamlit as st
-from gemini_client import create_client, chat_with_model, format_summary_as_markdown
-from document_funcs import display_download_buttons
+from llm_manager import create_client, chat_with_model, format_summary_as_markdown
+from document_manager import display_download_buttons
 from utils import render_markdown
 
 

@@ -1,14 +1,13 @@
 import streamlit as st
-from google.cloud import storage
 import vertexai
 import os
 from datetime import datetime
 from dotenv import load_dotenv
 import tempfile
 import pymupdf
-from gemini_client import create_client, summarize_cim, format_summary_as_markdown
 from get_access_token import get_access_token
-from document_funcs import render_files, display_download_buttons
+from llm_manager import create_client, summarize_cim, format_summary_as_markdown
+from document_manager import render_files, display_download_buttons
 from chatbots import editor_chabot, qa_chatbot
 from utils import upload_blob, render_markdown
 

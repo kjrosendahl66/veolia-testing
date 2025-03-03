@@ -42,6 +42,7 @@ def load_part_from_gcs(files: Dict[str, Dict[str, str]]):
 
     lst_pdf_files = []
 
+    # Load the PDF files
     for _, file_locations in files.items():
         pdf_file = Part.from_uri(
             uri=file_locations["gcs_file_location"],
