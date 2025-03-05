@@ -1,5 +1,7 @@
 from vertexai.generative_models import GenerativeModel, Part
 from typing import Dict, List
+from dotenv import load_dotenv
+import os
 
 # Define the system instructions for the editor chatbot
 EDITOR_SYSTEM_INSTRUCTIONS = """
@@ -35,7 +37,7 @@ def create_client(model_name: str = "gemini-2.0-flash", chatbot_function: str = 
     return GenerativeModel(model_name)
 
 
-def load_part_from_gcs(files: Dict[str, Dict[str, str]]):
+def load_part_from_gcs(files: Dict[str, Dict[str, str]], documents_only: bool = False):
     """
     This function loads the PDF files from GCS and returns a list of Part objects for the LLM.
     """
@@ -45,10 +47,13 @@ def load_part_from_gcs(files: Dict[str, Dict[str, str]]):
     # Load the PDF files
     for _, file_locations in files.items():
         pdf_file = Part.from_uri(
-            uri=file_locations["gcs_file_location"],
-            mime_type=file_locations["mime_type"],
-        )
-        lst_pdf_files.append(pdf_file)
+                uri=file_locations["gcs_file_location"],
+                mime_type=file_locations["mime_type"],
+            )
+        if documents_only and file_locations["file_type"] == "document":
+            lst_pdf_files.append(pdf_file)
+        else: 
+            lst_pdf_files.append(pdf_file)
 
     return lst_pdf_files
 
@@ -93,20 +98,35 @@ def summarize_cim(
 def create_memo(
     model,
     files: Dict[str, Dict[str, str]],
+    tab_titles: List[str],
     temperature: float = 0.7,
 ):
     prompt = """
     You are a tool for a mergers and acquisitions team.
-    Fill in the memo template with the information in the provided documents and knowledge about this industry.
-    Be very detailed. This will be used to make a decision on acquiring a new company.
-    If the information cannot be concluded, label the field as "Not Available".
+    Fill out the Memo Template with the information in the provided documents and knowledge about this industry. Be detailed.
+
+    If you cannot find the information in the documents, leave that field blank. Do not fill in with "Not Available" or similar. 
     Incude page numbers where the information was found from the documents. 
+    Follow the template format and structure.
+    Do not add any additional comments at the beginning or end of the document.
+
+    Ensure the following major fields are written exactly as follows:
     """
+    prompt += "\n".join(tab_titles)
 
     contents = [prompt]
 
     # Add the PDF files to the contents
-    contents += load_part_from_gcs(files)
+    contents += load_part_from_gcs(files, documents_only = True)
+
+    load_dotenv()
+    memo_url = os.getenv("MEMO_OUTLINE_URL")
+    memo_mime_type = os.getenv("MEMO_OUTLINE_MIME")
+    memo_file = Part.from_uri(
+        uri=memo_url,
+        mime_type=memo_mime_type
+    )
+    contents.append(memo_file)
 
     generation_config = {"temperature": temperature}
 
