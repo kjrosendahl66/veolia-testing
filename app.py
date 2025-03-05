@@ -11,7 +11,7 @@ from document_manager import render_files, display_download_buttons
 from chatbots import editor_chabot, qa_chatbot
 from utils import upload_blob, render_markdown, upload_gcs_and_save
 from document_manager import render_files, display_download_buttons, save_summary_as_docx
-from docs_api import export_memo, TAB_TITLES
+from docs_api import export_memo, fetch_headers
 
 # Set configuration and title
 st.set_page_config(layout="wide")
@@ -115,8 +115,10 @@ with tab1:
                     # st.session_state.summary = summary_from_gemini
                     # st.session_state.display_summary = display_summary
                     if "memo_text" not in st.session_state:
-                        memo_text = create_memo(gemini_client, st.session_state.files, temperature=0.7, tab_titles=TAB_TITLES)
-                    st.session_state.memo_text = memo_text
+                        
+                        heading_titles = fetch_headers('formatting_headers/headings.txt')
+                        memo_text = create_memo(gemini_client, st.session_state.files, temperature=0.7, tab_titles=heading_titles)
+                        st.session_state.memo_text = memo_text
                     # st.session_state.memo_text = open('memo.txt', "r").read()
                     export_memo()
   
