@@ -3,16 +3,14 @@ import google.auth
 from google.auth import impersonated_credentials
 import streamlit as st
 import os
+import re
 
-TAB_TITLES = ["Executive Summary", 
-              "II. Investment Rationale", 
-              "III. About the Target", 
-              "IV. Growth Opportunity", 
-              "V. Key Financial Model Assumptions", 
-              "VI. Preliminary Integration Plan", 
-              "VII. Legal and Contractual Analysis",
-              "VIII. Preliminary Risk Analysis and Due Diligence Plan",
-              "Appendices"]
+def fetch_headers(file): 
+    headers = []
+    with open(file, "r") as f:
+        for line in f:
+            headers.append(line.strip())
+    return headers
 
 def create_document(service, title):
     body = {
@@ -49,17 +47,14 @@ def add_text(service, document_id, text):
     end_index = len(text) + start_index
     return text, start_index, end_index
 
-
-def format_document(service, document_id, text, start_index, end_index, tab_titles): 
-
-    requests = [] 
-    
-    for title in tab_titles:
+def format_document(service, document_id, text, start_index, end_index, heading_titles, subheading_titles):
+        
+    requests = []
+    for title in heading_titles:
         title_index = text.find(title)
         if title_index != -1:
             actual_title_index = title_index + start_index
-                        
-            requests.append(
+            requests += [
                 {
                     "updateParagraphStyle": {
                         "range": {
@@ -70,10 +65,48 @@ def format_document(service, document_id, text, start_index, end_index, tab_titl
                         "fields": "namedStyleType",
                     }
                 }
-            )
+            ]
+
+
+    service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
+    st.write("heading 1 added")
+
+
+
+    requests = []
+    for title in subheading_titles:
+        title_index = text.find(title)
+        if title_index != -1:
+            actual_title_index = title_index + start_index
+            requests += [
+                {
+                    "updateTextStyle": {
+                        "range": {
+                            "startIndex": actual_title_index,
+                            "endIndex": actual_title_index + len(title),
+                        },
+                        "textStyle": {
+                            'bold': True,
+                            'underline': True,
+                            'weightedFontFamily': {
+                                'fontFamily': 'Times New Roman',
+                                'weight': 900,
+                            },
+                            # 'fontSize': {
+                            #     'magnitude': 13,
+                            #     'unit': 'PT'
+                            # },
+                        },
+                        "fields": "weightedFontFamily, bold, underline",
+                    }
+                }
+            ]
+
+    service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
+    st.write("subheadings bolded")
 
     # Set the paragraph style of all the text to normal text:
-    requests.append(
+    requests = [
         {
             "updateTextStyle": {
                 "range": {
@@ -88,8 +121,23 @@ def format_document(service, document_id, text, start_index, end_index, tab_titl
                 "fields": "weightedFontFamily",
             }
         }
-    )
+    ]
+    service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
+    st.write("Text font added")
 
+    # request = {
+    #     'createParagraphBullets': {
+    #         'range': {
+    #             'startIndex': start_index,
+    #             'endIndex': end_index,
+    #         },
+    #         'bulletPreset': 'BULLET_ARROW_DIAMOND_DISC',
+    #     }
+    # }
+    # service.documents().batchUpdate(documentId=document_id, body={'requests': [request]}).execute()
+    # st.write("Bullets added")
+
+    requests = []
     #insert page break before the header if its not the first header.
     exec_start_index = text.find("Executive Summary")
     exec_end_index = text.find("II. Investment Rationale")
@@ -107,29 +155,11 @@ def format_document(service, document_id, text, start_index, end_index, tab_titl
                         }
                     }
                 ]
-        
-        # Add bullets to paragraphs
-    paragraphs = text.split("\n")
-    current_index = start_index
-    for paragraph in paragraphs:
-        paragraph = paragraph.strip()
-        if paragraph and paragraph not in tab_titles:
-            # Check if it is not just whitespace and not a title
-            requests.append(
-                {
-                    "createParagraphBullets": {
-                        "range": {
-                            "startIndex": current_index,
-                            "endIndex": current_index + len(paragraph),
-                        },
-                        "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
-                    }
-                }
-            )
-        current_index += len(paragraph) + 1
-
 
     service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
+    st.write("Page breaks added")
+
+
     return 
 
 
@@ -159,9 +189,17 @@ def export_memo():
 
     # Create a new document
     document_id = create_document(doc_service, "memo")
+
+    # short_text = st.session_state.memo_text.replace("*", "").replace("\n\n", "\n")
     text, start_index, end_index = add_text(doc_service, document_id, st.session_state.memo_text)
 
-    format_document(doc_service, document_id, text, start_index, end_index, TAB_TITLES)
+    heading_titles = fetch_headers("formatting_headers/headings.txt")
+    subheading_titles = fetch_headers("formatting_headers/subheadings.txt")
+    st.write(heading_titles)
+    st.write(subheading_titles)
+
+
+    format_document(doc_service, document_id, text, start_index, end_index, heading_titles, subheading_titles)
 
     filename = 'memo.docx'
     download_from_drive(drive_service, document_id, filename)
