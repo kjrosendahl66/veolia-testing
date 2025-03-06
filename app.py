@@ -31,13 +31,25 @@ token_url = "https://api.veolia.com/security/v2/oauth/token"
 api_url = "https://api.veolia.com/llm/veoliasecuregpt/v1/answer"
 access_token = get_access_token(token_url, api_url)
 
-# Initialize session state
+
+# ----------------- # 
+# """
+# # Files in session state are used to send to the LLM and render in the UI. 
+# # Example: 
+# # st.session_state.files = {
+# #     "file1.pdf": {
+# #         "file_type": "document/template",
+# #         "local_file_location": "path/to/file1.pdf",
+# #         "gcs_file_location": "gs://bucket_name/path/to/file1.pdf",
+# #         "mime_type": "application/pdf",
+# #         "doc": pymupdf.open("path/to/file1.pdf")
+# """ 
 if "files" not in st.session_state:
     st.session_state.files = {}
+
+# Initialize session state variables 
 if "temp_dir" not in st.session_state:
     st.session_state.temp_dir = tempfile.mkdtemp()
-if "docs" not in st.session_state:
-    st.session_state.docs = {}
 st.session_state.markdown_gemini_client = create_client(
     model_name="gemini-1.5-flash"
 )
@@ -55,7 +67,7 @@ with tab1:
     st.title("V-Accelerate")
     st.markdown("_Create initial summaries and ask questions of your Confidential Information Memorandum (CIM)!_")
 
-    # Model selection and file input
+    # Model selection
     model_option = st.selectbox(
         label="Choose a model to generate a summary:",
         options=("gemini-2.0-flash","gemini-1.5-pro", "Secure GPT"),
@@ -63,40 +75,43 @@ with tab1:
         placeholder="Select a model...",
     )
 
+    # File upload for CIM template outline 
     uploaded_template = st.file_uploader(
         "Upload your CIM template:", type=["pdf", "txt"], accept_multiple_files=True
     )
 
+    # File upload for information documents
     uploaded_files = st.file_uploader(
         "Upload your files:", type=["pdf", "txt"], accept_multiple_files=True
     )
         
+    # Save model option for LLM 
     if model_option:
         st.session_state.model_option = model_option
 
     if len(uploaded_template) > 0 and len(uploaded_files) > 0 and len(st.session_state.files) == 0:
-        # if "files" not in st.session_state:
-            # Process input files
+
+        # Load and upload files to GCS 
         with st.spinner("Processing files..."):
+
             # Create a timestamp for the files
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
+            # Upload the information documents to GCS and save to session 
             for file in uploaded_files:
-
                 path = upload_gcs_and_save(bucket_name, file, "document")
-                # Open and save the rendered PDF files as pymupdf docs to the session state
-                # st.session_state.docs[file.name] = pymupdf.open(path)
-            
+
+            # Upload the template to GCS and save to session
             for file in uploaded_template:
                 path = upload_gcs_and_save(bucket_name, file, "template")
-                # Open and save the rendered PDF files as pymupdf docs to the session state
-                # st.session_state.docs[file.name] = pymupdf.open(path)
 
         st.toast("Files processed succesfully!", icon="🎉")
 
-        # Generate summary
+        # Generate CIM summary and memo 
         if len(st.session_state.files) > 1 and "summary" not in st.session_state and model_option:
+
             with st.spinner("Generating summary..."):
+
                 # Generate summary using Gemini
                 if model_option.startswith("gemini"):
 
@@ -105,38 +120,61 @@ with tab1:
                         model_name=st.session_state.model_option
                     )
 
+                    # Generate a summary using the uploaded files
                     summary_from_gemini = summarize_cim(
-                        gemini_client, st.session_state.files
+                        model=gemini_client,
+                        files=st.session_state.files
                     )
 
-                    # Generate a summary for markdown display in streamlit
+                    # Format the summary as markdown
                     display_summary = format_summary_as_markdown(
-                        st.session_state.markdown_gemini_client, summary_from_gemini
+                        model=st.session_state.markdown_gemini_client, 
+                        summary=summary_from_gemini
                     )
 
                     # Save both summaries to the session state
                     st.session_state.summary = summary_from_gemini
                     st.session_state.display_summary = display_summary
 
+                    # Generate a memo draft 
                     if st.session_state.memo_text is None:
-                        
+
+                        # Read the headings and subheadings as lists for formatting the memo 
                         headings = fetch_headers('memo_elements/headings.txt')
                         subheadings = fetch_headers('memo_elements/subheadings.txt')
-                        memo_text = create_memo(gemini_client, st.session_state.files, temperature=0.7, 
-                                                headings=headings, subheadings=subheadings)
+
+                        # Generate the memo using Gemini 
+                        memo_text = create_memo(
+                                    model=gemini_client, 
+                                    files=st.session_state.files,
+                                    headings=headings, subheadings=subheadings)
                         st.session_state.memo_text = memo_text
                         
+                    # Format the memo according to memo outline 
                     if st.session_state.memo_filename is None:
-                        st.session_state.memo_filename = format_and_export_memo()
-                        pdf_filename = "memo.pdf"
-                        memo_output_path, memo_filename = convert_docx_to_pdf(st.session_state.memo_filename, pdf_filename)
-                        st.session_state.files["Memo"] = {"doc": pymupdf.open(memo_output_path)}
+
+                        # Format memo and export to a docx file 
+                        memo_filename = "memo_draft.docx"
+                        st.session_state.memo_filename = format_and_export_memo(filename=memo_filename)
+
+                        # Convert the memo to a PDF file
+                        try: 
+                            pdf_filename = "memo.pdf"
+                            memo_output_path, memo_filename = convert_docx_to_pdf(
+                                docx_path=st.session_state.memo_filename, 
+                                output_pdf_filename=pdf_filename)
+
+                            # Save the rendered memo to the session state
+                            st.session_state.files["Memo"] = {"doc": pymupdf.open(memo_output_path)}
+                        except Exception as e:
+                            st.error("Error converting memo to PDF. Please try again.")
         
                 elif model_option == "Secure GPT":
                     st.session_state.summary = "Secure GPT not implemented yet. "
 
     #  Display markdown summary
     if "display_summary" in st.session_state:
+
         # Render the markdown summary and display in streamlit
         st.markdown(
             render_markdown(st.session_state.display_summary),
@@ -151,6 +189,7 @@ with tab1:
     else:
         st.write("Please upload at least two files and choose a model.")
 
+    # Display download memo draft button
     if st.session_state.memo_filename:
         st.divider() 
         _ = st.download_button(
@@ -167,12 +206,14 @@ with tab1:
             render_files()
 
 
+# Display the editor chatbot tab
 with tab2:
     if "summary" in st.session_state and model_option:
         editor_chabot()
     else: 
         st.write("Please generate a summary in the Home tab first.")
 
+# Display the Q&A chatbot tab
 with tab3:
     if len(st.session_state.files) > 0 and model_option:
         qa_chatbot()

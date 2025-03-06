@@ -61,7 +61,7 @@ def navigation_buttons(doc):
 
 def render_files():
     """
-    This function renders the uploaded files in the file viewer.
+    This function renders the uploaded files and memo draft in the file viewer.
     """
 
     # Display the file viewer with uploaded files
@@ -75,26 +75,32 @@ def render_files():
             # Load the selected file
             if "last_selected_file" not in st.session_state:
                 st.session_state.last_selected_file = file_option
-                # st.session_state.current_file = st.session_state.docs[file_option]
                 st.session_state.current_file = st.session_state.files[file_option]["doc"]
                 st.session_state.current_page = 1
             # Update the selected file when option is changed
             elif st.session_state.last_selected_file != file_option:
                 st.session_state.last_selected_file = file_option
                 st.session_state.current_file = st.session_state.files[file_option]["doc"]
-                # st.session_state.current_file = st.session_state.docs[file_option]
                 st.session_state.current_page = 1
 
             # Load the document and display the page
-            # doc = st.session_state.docs[file_option]
             doc = st.session_state.files[file_option]["doc"]
-            navigation_buttons(doc)
-            display_page(doc)
+            navigation_buttons(doc=doc)
+            display_page(doc=doc)
 
 
 def save_summary_as_docx(summary: str, summary_filename: str, output_filename: str): 
     """
     This function saves a chatbot/generated summary as a docx file.
+
+    Args: 
+        summary (str): The summary to be saved.
+        summary_filename (str): The filename for the summary.
+        output_filename (str): The filename for the output docx file.
+
+    Returns:
+        output_path (str): The path to the output docx file.
+        output_filename (str): The filename of the output docx file
     """
 
     # Construct path
@@ -114,6 +120,14 @@ def save_summary_as_docx(summary: str, summary_filename: str, output_filename: s
 def convert_docx_to_pdf(docx_path: str, output_pdf_filename:str):
     """
     This function converts a docx file to a pdf file.
+
+    Args: 
+        docx_path (str): The path to the docx file.
+        output_pdf_filename (str): The filename for the output pdf file.
+
+    Returns:
+        output_path (str): The path to the output pdf file.
+        output_pdf_filename (str): The filename of the output pdf file
     """
     output_path = os.path.join(st.session_state.temp_dir, output_pdf_filename)
     pypandoc.convert_file(docx_path, "pdf", outputfile=output_path, extra_args=['-V geometry:margin=1.5cm', '--pdf-engine=pdflatex'])
@@ -124,6 +138,9 @@ def convert_docx_to_pdf(docx_path: str, output_pdf_filename:str):
 def display_download_buttons(summary_name: str ="summary"):
         """
         This function displays buttons for downloading a summary as a docx, pdf, or txt.
+        Args: 
+            summary_name (str, optional): The name of the summary to be downloaded. 
+            Defaults to "summary".
         """
 
         # Determine the summary content and button text based on the summary name
@@ -138,7 +155,9 @@ def display_download_buttons(summary_name: str ="summary"):
         # Save the summary as a docx file
         try: 
             docx_output_path, docx_output_filename = save_summary_as_docx(
-                summary_content, f"{summary_name}.md", f"{summary_name}.docx"
+                summary=summary_content, 
+                summary_filename=f"{summary_name}.md", 
+                output_filename=f"{summary_name}.docx"
             )
         except Exception as e: 
             st.error(f"Error saving as a docx file: {e}")
@@ -147,7 +166,8 @@ def display_download_buttons(summary_name: str ="summary"):
         # Save the summary as a pdf file using the docx file
         try: 
             pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
-                docx_output_path, f"{summary_name}.pdf"
+                docx_path=docx_output_path, 
+                output_pdf_filename=f"{summary_name}.pdf"
             )
         except Exception as e: 
             st.error(f"Error saving as a pdf file: {e}")
