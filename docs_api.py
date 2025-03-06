@@ -3,7 +3,6 @@ import google.auth
 from google.auth import impersonated_credentials
 import streamlit as st
 import os
-import re
 
 def fetch_headers(file): 
     headers = []
@@ -11,6 +10,24 @@ def fetch_headers(file):
         for line in f:
             headers.append(line.strip())
     return headers
+
+def read_text(service, document_id): 
+
+    document = service.documents().get(documentId=document_id).execute()
+
+    text = ""
+    start_index = 0
+    if 'body' in document:
+        for element in document['body']['content']:
+            if 'paragraph' in element:
+                for paragraph_element in element['paragraph']['elements']:
+                    if 'textRun' in paragraph_element:
+                        text += paragraph_element['textRun']['content']
+                    #Check for section breaks, and update start index if found.
+            if 'sectionBreak' in element:
+                start_index = element['endIndex']
+    end_index = len(text) + start_index
+    return text, start_index, end_index
 
 def create_document(service, title):
     body = {
@@ -32,34 +49,19 @@ def add_text(service, document_id, text):
     body = {"requests": requests}
     service.documents().batchUpdate(documentId=document_id, body=body).execute()
 
-    document = service.documents().get(documentId=document_id).execute()
-    text = ""
-    start_index = 0
-    if 'body' in document:
-        for element in document['body']['content']:
-            if 'paragraph' in element:
-                for paragraph_element in element['paragraph']['elements']:
-                    if 'textRun' in paragraph_element:
-                        text += paragraph_element['textRun']['content']
-                    #Check for section breaks, and update start index if found.
-            if 'sectionBreak' in element:
-                start_index = element['endIndex']
-    end_index = len(text) + start_index
-    return text, start_index, end_index
+def format_document(service, document_id, heading_titles, subheading_titles):
 
-def format_document(service, document_id, text, start_index, end_index, heading_titles, subheading_titles):
-        
+    text, start_index, end_index = read_text(service, document_id)
     requests = []
     for title in heading_titles:
-        title_index = text.find(title)
+        title_index = text.find(title) 
         if title_index != -1:
-            actual_title_index = title_index + start_index
             requests += [
                 {
                     "updateParagraphStyle": {
                         "range": {
-                            "startIndex": actual_title_index,
-                            "endIndex": actual_title_index + len(title),
+                            "startIndex": start_index + title_index,
+                            "endIndex": start_index + title_index + len(title),
                         },
                         "paragraphStyle": {"namedStyleType": "HEADING_1"},
                         "fields": "namedStyleType",
@@ -67,44 +69,36 @@ def format_document(service, document_id, text, start_index, end_index, heading_
                 }
             ]
 
-
     service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
-    st.write("heading 1 added")
 
-
-
-    requests = []
-    for title in subheading_titles:
-        title_index = text.find(title)
+    # requests = [] 
+    for x in range(len(subheading_titles)):
+        subheading = subheading_titles[x]
+        text, start_index, end_index = read_text(service, document_id)
+        title_index = text.find(subheading)
         if title_index != -1:
-            actual_title_index = title_index + start_index
-            requests += [
-                {
-                    "updateTextStyle": {
-                        "range": {
-                            "startIndex": actual_title_index,
-                            "endIndex": actual_title_index + len(title),
-                        },
-                        "textStyle": {
-                            'bold': True,
-                            'underline': True,
-                            'weightedFontFamily': {
-                                'fontFamily': 'Times New Roman',
-                                'weight': 900,
+            newline_index = title_index + start_index + len(subheading)
+            request = [{
+                        "insertText": {
+                            "location": {
+                                "index": newline_index
                             },
-                            # 'fontSize': {
-                            #     'magnitude': 13,
-                            #     'unit': 'PT'
-                            # },
+                            "text": "\n",
+                            }, 
+                        }, 
+                    {
+                    "updateParagraphStyle": {
+                        "range": {
+                            "startIndex": title_index + start_index,
+                            "endIndex": title_index + start_index + len(subheading),
                         },
-                        "fields": "weightedFontFamily, bold, underline",
+                        "paragraphStyle": {"namedStyleType": "HEADING_3"},
+                        "fields": "namedStyleType",
+                        }
                     }
-                }
-            ]
-
-    service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
-    st.write("subheadings bolded")
-
+                ] 
+            service.documents().batchUpdate(documentId=document_id, body={"requests": request}).execute()
+                
     # Set the paragraph style of all the text to normal text:
     requests = [
         {
@@ -123,22 +117,10 @@ def format_document(service, document_id, text, start_index, end_index, heading_
         }
     ]
     service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
-    st.write("Text font added")
 
-    # request = {
-    #     'createParagraphBullets': {
-    #         'range': {
-    #             'startIndex': start_index,
-    #             'endIndex': end_index,
-    #         },
-    #         'bulletPreset': 'BULLET_ARROW_DIAMOND_DISC',
-    #     }
-    # }
-    # service.documents().batchUpdate(documentId=document_id, body={'requests': [request]}).execute()
-    # st.write("Bullets added")
 
+    text, start_index, end_index = read_text(service, document_id)
     requests = []
-    #insert page break before the header if its not the first header.
     exec_start_index = text.find("Executive Summary")
     exec_end_index = text.find("II. Investment Rationale")
     if exec_start_index > 0:
@@ -157,8 +139,30 @@ def format_document(service, document_id, text, start_index, end_index, heading_
                 ]
 
     service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
-    st.write("Page breaks added")
 
+    
+
+    request = [{ 
+        'insertInlineImage': {
+            'location': {
+                'index': 0
+            },
+            'uri': 'https://drive.google.com/file/d/1VTHdfG2HbGEg08XdRtYpVlAgGWa9m8IG/view?usp=sharing',
+            'objectSize': {
+                'height': {
+                    'magnitude': 50,
+                    'unit': 'PT'
+                },
+                'width': {
+                    'magnitude': 50,
+                    'unit': 'PT'
+                }
+            }
+        }
+        }
+    ]
+
+    service.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
 
     return 
 
@@ -171,7 +175,7 @@ def download_from_drive(drive_service, document_id, filename, mime_type: str = "
     return 
 
 
-def export_memo(): 
+def format_and_export_memo(): 
 
     target_scopes = ['https://www.googleapis.com/auth/drive.file']
     source_credentials, project = google.auth.default()
@@ -190,22 +194,17 @@ def export_memo():
     # Create a new document
     document_id = create_document(doc_service, "memo")
 
-    # short_text = st.session_state.memo_text.replace("*", "").replace("\n\n", "\n")
-    text, start_index, end_index = add_text(doc_service, document_id, st.session_state.memo_text)
+    add_text(doc_service, document_id, st.session_state.memo_text)
 
-    heading_titles = fetch_headers("formatting_headers/headings.txt")
-    subheading_titles = fetch_headers("formatting_headers/subheadings.txt")
-    st.write(heading_titles)
-    st.write(subheading_titles)
+    heading_titles = fetch_headers("memo_elements/headings.txt")
+    subheading_titles = fetch_headers("memo_elements/subheadings.txt")
 
-
-    format_document(doc_service, document_id, text, start_index, end_index, heading_titles, subheading_titles)
+    try: 
+        format_document(doc_service, document_id, heading_titles, subheading_titles)
+    except Exception as e:
+        st.write("Problem formatting document: ", e)
 
     filename = 'memo.docx'
     download_from_drive(drive_service, document_id, filename)
 
-    _ = st.download_button(
-        label=f"Download memo as formatted docx",
-        data=open(filename, "rb").read(),
-        file_name=filename,
-    )
+    return filename
