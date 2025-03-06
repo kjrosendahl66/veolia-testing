@@ -9,9 +9,9 @@ from get_access_token import get_access_token
 from llm_manager import create_client, summarize_cim, format_summary_as_markdown, create_memo
 from document_manager import render_files, display_download_buttons
 from chatbots import editor_chabot, qa_chatbot
-from utils import upload_blob, render_markdown, upload_gcs_and_save
-from document_manager import render_files, display_download_buttons, save_summary_as_docx, convert_docx_to_pdf
-from docs_api import format_and_export_memo, fetch_headers
+from utils import render_markdown, upload_gcs_and_save
+from document_manager import render_files, display_download_buttons, convert_docx_to_pdf
+from memo_formatter import format_and_export_memo, fetch_headers
 
 # Set configuration and title
 st.set_page_config(layout="wide")
