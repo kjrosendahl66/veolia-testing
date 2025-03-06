@@ -10,8 +10,8 @@ from llm_manager import create_client, summarize_cim, format_summary_as_markdown
 from document_manager import render_files, display_download_buttons
 from chatbots import editor_chabot, qa_chatbot
 from utils import upload_blob, render_markdown, upload_gcs_and_save
-from document_manager import render_files, display_download_buttons, save_summary_as_docx
-from docs_api import export_memo, fetch_headers
+from document_manager import render_files, display_download_buttons, save_summary_as_docx, convert_docx_to_pdf
+from docs_api import format_and_export_memo, fetch_headers
 
 # Set configuration and title
 st.set_page_config(layout="wide")
@@ -41,7 +41,10 @@ if "docs" not in st.session_state:
 st.session_state.markdown_gemini_client = create_client(
     model_name="gemini-1.5-flash"
 )
-
+if "memo_filename" not in st.session_state:
+    st.session_state.memo_filename = None
+if "memo_text" not in st.session_state:
+    st.session_state.memo_text = None
 
 st.image("images/veolia.png", width=200) # Adjust width as needed
 
@@ -71,7 +74,7 @@ with tab1:
     if model_option:
         st.session_state.model_option = model_option
 
-    if len(uploaded_template) > 0 and len(uploaded_files) > 0:
+    if len(uploaded_template) > 0 and len(uploaded_files) > 0 and len(st.session_state.files) == 0:
         # if "files" not in st.session_state:
             # Process input files
         with st.spinner("Processing files..."):
@@ -82,12 +85,12 @@ with tab1:
 
                 path = upload_gcs_and_save(bucket_name, file, "document")
                 # Open and save the rendered PDF files as pymupdf docs to the session state
-                st.session_state.docs[file.name] = pymupdf.open(path)
+                # st.session_state.docs[file.name] = pymupdf.open(path)
             
             for file in uploaded_template:
                 path = upload_gcs_and_save(bucket_name, file, "template")
                 # Open and save the rendered PDF files as pymupdf docs to the session state
-                st.session_state.docs[file.name] = pymupdf.open(path)
+                # st.session_state.docs[file.name] = pymupdf.open(path)
 
         st.toast("Files processed succesfully!", icon="🎉")
 
@@ -102,44 +105,60 @@ with tab1:
                         model_name=st.session_state.model_option
                     )
 
-                    # summary_from_gemini = summarize_cim(
-                    #     gemini_client, st.session_state.files
-                    # )
+                    summary_from_gemini = summarize_cim(
+                        gemini_client, st.session_state.files
+                    )
 
-                    # # Generate a summary for markdown display in streamlit
-                    # display_summary = format_summary_as_markdown(
-                    #     st.session_state.markdown_gemini_client, summary_from_gemini
-                    # )
+                    # Generate a summary for markdown display in streamlit
+                    display_summary = format_summary_as_markdown(
+                        st.session_state.markdown_gemini_client, summary_from_gemini
+                    )
 
-                    # # Save both summaries to the session state
-                    # st.session_state.summary = summary_from_gemini
-                    # st.session_state.display_summary = display_summary
-                    if "memo_text" not in st.session_state:
+                    # Save both summaries to the session state
+                    st.session_state.summary = summary_from_gemini
+                    st.session_state.display_summary = display_summary
+
+                    if st.session_state.memo_text is None:
                         
-                        heading_titles = fetch_headers('formatting_headers/headings.txt')
-                        memo_text = create_memo(gemini_client, st.session_state.files, temperature=0.7, tab_titles=heading_titles)
+                        headings = fetch_headers('memo_elements/headings.txt')
+                        subheadings = fetch_headers('memo_elements/subheadings.txt')
+                        memo_text = create_memo(gemini_client, st.session_state.files, temperature=0.7, 
+                                                headings=headings, subheadings=subheadings)
                         st.session_state.memo_text = memo_text
-                    # st.session_state.memo_text = open('memo.txt', "r").read()
-                    export_memo()
-  
+                        
+                    if st.session_state.memo_filename is None:
+                        st.session_state.memo_filename = format_and_export_memo()
+                        pdf_filename = "memo.pdf"
+                        memo_output_path, memo_filename = convert_docx_to_pdf(st.session_state.memo_filename, pdf_filename)
+                        st.session_state.files["Memo"] = {"doc": pymupdf.open(memo_output_path)}
+        
                 elif model_option == "Secure GPT":
                     st.session_state.summary = "Secure GPT not implemented yet. "
 
-        #  Display markdown summary
-        if "display_summary" in st.session_state:
-            # Render the markdown summary and display in streamlit
-            st.markdown(
-                render_markdown(st.session_state.display_summary),
-                unsafe_allow_html=True,
-            )
+    #  Display markdown summary
+    if "display_summary" in st.session_state:
+        # Render the markdown summary and display in streamlit
+        st.markdown(
+            render_markdown(st.session_state.display_summary),
+            unsafe_allow_html=True,
+        )
 
-            st.divider()
-        
-            # Display download buttons for the summary
-            display_download_buttons(summary_name="summary")
+        st.divider()
+    
+        # Display download buttons for the summary
+        display_download_buttons(summary_name="summary")
 
-        else:
-            st.write("Please upload at least two files and choose a model.")
+    else:
+        st.write("Please upload at least two files and choose a model.")
+
+    if st.session_state.memo_filename:
+        st.divider() 
+        _ = st.download_button(
+            label = "Download Memo Draft",
+            data = open(st.session_state.memo_filename, "rb").read(),
+            file_name = st.session_state.memo_filename,
+            key="memo_download")
+
 
     # Display the uploaded files in the sidebar
     with st.sidebar:
