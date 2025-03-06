@@ -75,16 +75,19 @@ def render_files():
             # Load the selected file
             if "last_selected_file" not in st.session_state:
                 st.session_state.last_selected_file = file_option
-                st.session_state.current_file = st.session_state.docs[file_option]
+                # st.session_state.current_file = st.session_state.docs[file_option]
+                st.session_state.current_file = st.session_state.files[file_option]["doc"]
                 st.session_state.current_page = 1
             # Update the selected file when option is changed
             elif st.session_state.last_selected_file != file_option:
                 st.session_state.last_selected_file = file_option
-                st.session_state.current_file = st.session_state.docs[file_option]
+                st.session_state.current_file = st.session_state.files[file_option]["doc"]
+                # st.session_state.current_file = st.session_state.docs[file_option]
                 st.session_state.current_page = 1
 
             # Load the document and display the page
-            doc = st.session_state.docs[file_option]
+            # doc = st.session_state.docs[file_option]
+            doc = st.session_state.files[file_option]["doc"]
             navigation_buttons(doc)
             display_page(doc)
 
@@ -100,7 +103,8 @@ def save_summary_as_docx(summary: str, summary_filename: str, output_filename: s
 
     # Save the summary to a local path
     with open(summary_path, "w") as f:
-        f.write(summary)
+        for line in summary.split("\n"):
+            f.write(line + "\n")
 
     # Convert to docx
     pypandoc.convert_file(summary_path, "docx", outputfile=output_path)
