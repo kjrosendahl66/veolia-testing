@@ -2,6 +2,7 @@ from google.cloud import storage
 from datetime import datetime
 import os 
 import streamlit as st
+import pymupdf 
 
 # Upload file to GCS
 def upload_blob(bucket_name, destination_blob_name, file):
@@ -40,8 +41,13 @@ def upload_gcs_and_save(bucket_name, file, file_type):
                 "local_file_location": path,
                 "gcs_file_location": gcs_location,
                 "mime_type": file.type,
+                "doc": pymupdf.open(path)
             }
         }
     )
+
+
+                # # Open and save the rendered PDF files as pymupdf docs to the session state
+                # st.session_state.docs[file.name] = pymupdf.open(path)
 
     return path
