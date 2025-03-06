@@ -46,14 +46,15 @@ def load_part_from_gcs(files: Dict[str, Dict[str, str]], documents_only: bool = 
 
     # Load the PDF files
     for _, file_locations in files.items():
-        pdf_file = Part.from_uri(
-                uri=file_locations["gcs_file_location"],
-                mime_type=file_locations["mime_type"],
-            )
-        if documents_only and file_locations["file_type"] == "document":
-            lst_pdf_files.append(pdf_file)
-        else: 
-            lst_pdf_files.append(pdf_file)
+        if "gcs_file_location" in file_locations:
+            pdf_file = Part.from_uri(
+                    uri=file_locations["gcs_file_location"],
+                    mime_type=file_locations["mime_type"],
+                )
+            if documents_only and file_locations["file_type"] == "document":
+                lst_pdf_files.append(pdf_file)
+            else: 
+                lst_pdf_files.append(pdf_file)
 
     return lst_pdf_files
 
@@ -98,22 +99,24 @@ def summarize_cim(
 def create_memo(
     model,
     files: Dict[str, Dict[str, str]],
-    tab_titles: List[str],
-    temperature: float = 0.7,
+    headings: List[str],
+    subheadings: List[str],
+    temperature: float = 0.9,
 ):
     prompt = """
-    You are a tool for a mergers and acquisitions team.
-    Fill out the Memo Template with the information in the provided documents and knowledge about this industry. Be detailed.
+    Fill out the Memo Template using the provided documents and knowledge of industry. 
+    Be detailed and thorough with the information. Include page numbers for references.
 
-    If you cannot find the information in the documents, leave that field blank. Do not fill in with "Not Available" or similar. 
-    Incude page numbers where the information was found from the documents. 
-    Follow the template format and structure.
-    Do not add any additional comments at the beginning or end of the document.
+    If you cannot find the information in the documents, leave that field blank. Do not fill in with "Not Available" or "N/A" or "Unknown" or similar text. 
+    Follow the template format and structure exactly. Do not add any additional comments. 
 
-    Ensure the following major fields are written exactly as follows:
-    """
-    prompt += "\n".join(tab_titles)
+    Return as normal text.
 
+    # """
+
+    # Ensure the following major fields are written exactly as follows:
+    # prompt += "\n".join(headings)
+    
     contents = [prompt]
 
     # Add the PDF files to the contents
@@ -188,6 +191,7 @@ def chat_with_model(
     user_prompt: str,
     msg_history: List[Dict[str, str]],
     summary: str = None,
+    documents_only: bool = False,
     temperature: float = 0.7,
 ):
     """
@@ -205,7 +209,7 @@ def chat_with_model(
     """
 
     # Add the PDF files to the contents
-    contents = load_part_from_gcs(files)
+    contents = load_part_from_gcs(files, documents_only)
     contents += [user_prompt]
     if summary:
         contents += [summary]

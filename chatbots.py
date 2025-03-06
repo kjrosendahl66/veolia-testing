@@ -77,6 +77,7 @@ def editor_chabot():
                     summary=st.session_state.summary,
                     user_prompt=prompt,
                     msg_history=st.session_state.editor_messages,
+                    documents_only=False,
                 )
 
                 # Format the response for display in the chat
@@ -175,6 +176,7 @@ def qa_chatbot():
                     files=st.session_state.files,
                     user_prompt=prompt,
                     msg_history=st.session_state.qa_messages,
+                    documents_only=True,
                 )
 
             # Display the response in the chat
