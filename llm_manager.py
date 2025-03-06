@@ -26,8 +26,8 @@ QA_SYSTEM_INSTRUCTIONS = """
 
 # Create a client for the Generative Model
 def create_client(model_name: str = "gemini-2.0-flash", chatbot_function: str = None):
-    """ 
-    This function creates a Gemini client. 
+    """
+    This function creates a Gemini client.
     Args:
         model_name (str, optiona): The name of the model to use. Defaults to "gemini-2.0-flash".
         chatbot_function (str, optional): The chatbot function to use. Specifies system instructions. Defaults to None.
@@ -49,7 +49,7 @@ def load_part_from_gcs(files: Dict[str, Dict[str, str]], documents_only: bool = 
     """
     This function loads the PDF files from GCS and returns a list of Part objects for the LLM.
     Args:
-        files (dict): A dictionary containing the locations of the files in GCS. 
+        files (dict): A dictionary containing the locations of the files in GCS.
         documents_only (bool, optional): Whether to load only the documents. Defaults to False.
     Returns:
         A list of Part objects.
@@ -61,12 +61,12 @@ def load_part_from_gcs(files: Dict[str, Dict[str, str]], documents_only: bool = 
     for _, file_locations in files.items():
         if "gcs_file_location" in file_locations:
             pdf_file = Part.from_uri(
-                    uri=file_locations["gcs_file_location"],
-                    mime_type=file_locations["mime_type"],
-                )
+                uri=file_locations["gcs_file_location"],
+                mime_type=file_locations["mime_type"],
+            )
             if documents_only and file_locations["file_type"] == "document":
                 lst_pdf_files.append(pdf_file)
-            else: 
+            else:
                 lst_pdf_files.append(pdf_file)
 
     return lst_pdf_files
@@ -82,7 +82,7 @@ def summarize_cim(
     Both the CIM and the template are provided as PDF files, uploaded to GCS.
     Args:
         model (GemerativeModel): A GenerativeModel object.
-        files (dict): A dictionary containing the file locations in GCS. 
+        files (dict): A dictionary containing the file locations in GCS.
         temperature (float, optional): The temperature for the model generation. Defaults to 0.7.
     Returns:
         A string containing the generated summary.
@@ -116,17 +116,16 @@ def create_memo(
     subheadings: List[str],
     temperature: float = 0.9,
 ):
-
-    """ 
+    """
     This function uses Gemini to generate a memo draft based on the provided documents and headings.
     Args:
         model (GemerativeModel): A GenerativeModel object.
-        files (dict): A dictionary containing the file locations in GCS. 
+        files (dict): A dictionary containing the file locations in GCS.
         headings (list): A list of headings for the memo.
         subheadings (list): A list of subheadings for the memo.
         temperature (float, optional): The temperature for the model generation. Defaults to 0.9.
     Returns:
-        A string containing the generated memo draft. 
+        A string containing the generated memo draft.
     """
 
     prompt = """
@@ -139,11 +138,11 @@ def create_memo(
     Return as normal text.
 
     # """
-    
+
     contents = [prompt]
 
     # Add the PDF files to the contents
-    contents += load_part_from_gcs(files, documents_only = True)
+    contents += load_part_from_gcs(files, documents_only=True)
 
     # Load the memo outline environment variables
     load_dotenv()
@@ -151,10 +150,7 @@ def create_memo(
     memo_mime_type = os.getenv("MEMO_OUTLINE_MIME")
 
     # Add the memo outline to the contents
-    memo_file = Part.from_uri(
-        uri=memo_url,
-        mime_type=memo_mime_type
-    )
+    memo_file = Part.from_uri(uri=memo_url, mime_type=memo_mime_type)
     contents.append(memo_file)
 
     generation_config = {"temperature": temperature}
@@ -225,7 +221,7 @@ def chat_with_model(
 
     Args:
         model (GemerativeModel): A GenerativeModel object.
-        files (dict): A dictionary containing the file locations in GCS. 
+        files (dict): A dictionary containing the file locations in GCS.
         user_prompt (str): The user input.
         msg_history (list): A list of dictionaries representing the chat history.
         summary (str, optional): The previous summary, if using editor chatbot.

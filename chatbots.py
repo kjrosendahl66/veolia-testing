@@ -5,15 +5,14 @@ from utils import render_markdown
 
 
 def editor_chabot():
-
     """
     This function displays the editor chatbot interface in Streamlit.
-    The chatbot reads the session files and summary generated in the Home tab. 
+    The chatbot reads the session files and summary generated in the Home tab.
     Users may ask the bot to refine the summary by making requested edits.
     Chat history and updated summaries are displayed in the interface.
     Users have the options to download the latest edited summary and clear the chat history.
     """
-    
+
     # Initialize session state variables
     st.session_state.editor_intro_msg = {
         "role": "assistant",
@@ -27,7 +26,7 @@ def editor_chabot():
     if "editor_messages" not in st.session_state:
         st.session_state.editor_messages = [st.session_state.editor_intro_msg]
 
-    # Init model for editor chatbot 
+    # Init model for editor chatbot
     editor_chat_client = create_client(
         st.session_state.model_option, chatbot_function="editor"
     )
@@ -85,7 +84,7 @@ def editor_chabot():
                     st.session_state.markdown_gemini_client, summary=editor_response
                 )
 
-            # Display the response in the chat 
+            # Display the response in the chat
             with st.chat_message("assistant"):
                 st.markdown(
                     render_markdown(editor_display_response),
@@ -100,7 +99,7 @@ def editor_chabot():
                     "display_response": editor_display_response,
                 }
             )
-            
+
             # Save the latest response for edited summary download
             st.session_state.latest_editor_chatbot_response = editor_response
 
@@ -124,7 +123,6 @@ def editor_chabot():
 
 
 def qa_chatbot():
-
     """
     This function displays the Q&A chatbot interface in Streamlit.
     The chatbot reads the session files and allows users to ask questions about the documents.

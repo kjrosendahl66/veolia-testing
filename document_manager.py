@@ -66,7 +66,6 @@ def render_files():
 
     # Display the file viewer with uploaded files
     if st.session_state.files:
-
         # Display the file selection dropdown
         file_names = list(st.session_state.files.keys())
         file_option = st.selectbox("Select a file to view", options=file_names, index=0)
@@ -75,12 +74,16 @@ def render_files():
             # Load the selected file
             if "last_selected_file" not in st.session_state:
                 st.session_state.last_selected_file = file_option
-                st.session_state.current_file = st.session_state.files[file_option]["doc"]
+                st.session_state.current_file = st.session_state.files[file_option][
+                    "doc"
+                ]
                 st.session_state.current_page = 1
             # Update the selected file when option is changed
             elif st.session_state.last_selected_file != file_option:
                 st.session_state.last_selected_file = file_option
-                st.session_state.current_file = st.session_state.files[file_option]["doc"]
+                st.session_state.current_file = st.session_state.files[file_option][
+                    "doc"
+                ]
                 st.session_state.current_page = 1
 
             # Load the document and display the page
@@ -89,11 +92,11 @@ def render_files():
             display_page(doc=doc)
 
 
-def save_summary_as_docx(summary: str, summary_filename: str, output_filename: str): 
+def save_summary_as_docx(summary: str, summary_filename: str, output_filename: str):
     """
     This function saves a chatbot/generated summary as a docx file.
 
-    Args: 
+    Args:
         summary (str): The summary to be saved.
         summary_filename (str): The filename for the summary.
         output_filename (str): The filename for the output docx file.
@@ -117,11 +120,12 @@ def save_summary_as_docx(summary: str, summary_filename: str, output_filename: s
 
     return output_path, output_filename
 
-def convert_docx_to_pdf(docx_path: str, output_pdf_filename:str):
+
+def convert_docx_to_pdf(docx_path: str, output_pdf_filename: str):
     """
     This function converts a docx file to a pdf file.
 
-    Args: 
+    Args:
         docx_path (str): The path to the docx file.
         output_pdf_filename (str): The filename for the output pdf file.
 
@@ -130,72 +134,76 @@ def convert_docx_to_pdf(docx_path: str, output_pdf_filename:str):
         output_pdf_filename (str): The filename of the output pdf file
     """
     output_path = os.path.join(st.session_state.temp_dir, output_pdf_filename)
-    pypandoc.convert_file(docx_path, "pdf", outputfile=output_path, extra_args=['-V geometry:margin=1.5cm', '--pdf-engine=pdflatex'])
+    pypandoc.convert_file(
+        docx_path,
+        "pdf",
+        outputfile=output_path,
+        extra_args=["-V geometry:margin=1.5cm", "--pdf-engine=pdflatex"],
+    )
 
     return output_path, output_pdf_filename
 
 
-def display_download_buttons(summary_name: str ="summary"):
-        """
-        This function displays buttons for downloading a summary as a docx, pdf, or txt.
-        Args: 
-            summary_name (str, optional): The name of the summary to be downloaded. 
-            Defaults to "summary".
-        """
+def display_download_buttons(summary_name: str = "summary"):
+    """
+    This function displays buttons for downloading a summary as a docx, pdf, or txt.
+    Args:
+        summary_name (str, optional): The name of the summary to be downloaded.
+        Defaults to "summary".
+    """
 
-        # Determine the summary content and button text based on the summary name
-        if summary_name == "summary": 
-            summary_content = st.session_state.summary 
-            button_display_text = "Download summary" 
+    # Determine the summary content and button text based on the summary name
+    if summary_name == "summary":
+        summary_content = st.session_state.summary
+        button_display_text = "Download summary"
 
-        elif summary_name == "chatbot_summary":
-            summary_content = st.session_state.latest_editor_chatbot_response
-            button_display_text = "Download the latest edit"
+    elif summary_name == "chatbot_summary":
+        summary_content = st.session_state.latest_editor_chatbot_response
+        button_display_text = "Download the latest edit"
 
-        # Save the summary as a docx file
-        try: 
-            docx_output_path, docx_output_filename = save_summary_as_docx(
-                summary=summary_content, 
-                summary_filename=f"{summary_name}.md", 
-                output_filename=f"{summary_name}.docx"
-            )
-        except Exception as e: 
-            st.error(f"Error saving as a docx file: {e}")
-            docx_output_path, docx_output_filename = None, None
+    # Save the summary as a docx file
+    try:
+        docx_output_path, docx_output_filename = save_summary_as_docx(
+            summary=summary_content,
+            summary_filename=f"{summary_name}.md",
+            output_filename=f"{summary_name}.docx",
+        )
+    except Exception as e:
+        st.error(f"Error saving as a docx file: {e}")
+        docx_output_path, docx_output_filename = None, None
 
-        # Save the summary as a pdf file using the docx file
-        try: 
-            pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
-                docx_path=docx_output_path, 
-                output_pdf_filename=f"{summary_name}.pdf"
-            )
-        except Exception as e: 
-            st.error(f"Error saving as a pdf file: {e}")
-            pdf_output_path, pdf_output_filename = None, None
+    # Save the summary as a pdf file using the docx file
+    try:
+        pdf_output_path, pdf_output_filename = convert_docx_to_pdf(
+            docx_path=docx_output_path, output_pdf_filename=f"{summary_name}.pdf"
+        )
+    except Exception as e:
+        st.error(f"Error saving as a pdf file: {e}")
+        pdf_output_path, pdf_output_filename = None, None
 
-        # Display download buttons
-        col1, col2, col3 = st.columns(3)
+    # Display download buttons
+    col1, col2, col3 = st.columns(3)
 
-        # Download button for docx
-        with col1: 
-            if docx_output_path is not None and docx_output_filename is not None:              
-                _ = st.download_button(
-                    label=f"{button_display_text} as a docx!",
-                    data=open(docx_output_path, "rb").read(),
-                    file_name=docx_output_filename,
-                )
-        # Download button for pdf
-        with col2:
-            if pdf_output_path is not None and pdf_output_filename is not None:
-                _ = st.download_button(
-                    label=f"{button_display_text} as a pdf!",
-                    data=open(pdf_output_path, "rb").read(),
-                    file_name=pdf_output_filename,
-                )
-        # Download button for txt
-        with col3: 
+    # Download button for docx
+    with col1:
+        if docx_output_path is not None and docx_output_filename is not None:
             _ = st.download_button(
-                label=f"{button_display_text} as a txt!",
-                data=summary_content,
-                file_name=f"{summary_name}.txt",
+                label=f"{button_display_text} as a docx!",
+                data=open(docx_output_path, "rb").read(),
+                file_name=docx_output_filename,
             )
+    # Download button for pdf
+    with col2:
+        if pdf_output_path is not None and pdf_output_filename is not None:
+            _ = st.download_button(
+                label=f"{button_display_text} as a pdf!",
+                data=open(pdf_output_path, "rb").read(),
+                file_name=pdf_output_filename,
+            )
+    # Download button for txt
+    with col3:
+        _ = st.download_button(
+            label=f"{button_display_text} as a txt!",
+            data=summary_content,
+            file_name=f"{summary_name}.txt",
+        )
